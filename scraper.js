@@ -13,10 +13,17 @@ const levenshtein = require('js-levenshtein');
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[14]/div/span/div/div/div[2]/h2/a/span
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[15]/div/span/div/div/div[2]/h2/a/span
 
+//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[6]/div/span/div/div/div/span/a/div/img - prime 
+//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[10]/div/span/div/div/span/a/div/img
+//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[14]/div/span/div/div/span/a/div/img
+//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[7]/div/span/div/div/span/a/div/img - pantry
+//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[12]/div/span/div/div/span/a/div/img - pantry
+
 async function scrapeAmazonPrices(searchString,count){
     let url = 'https://www.amazon.in';
     let product_name_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/h2/a/span';
-    let product_price_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[4]/div/div/div/a/span[1]/span[2]/span[2]'
+    let product_price_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[4]/div/div/div/a/span[1]/span[2]/span[2]';
+    let product_image_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/span/a/div/img';
     let num_results = count;
     let query = searchString;
     let products = [];
@@ -45,24 +52,35 @@ async function scrapeAmazonPrices(searchString,count){
     // Get prices and names from Amazon
     for(let i=0;i<num_results;i++){
         let product_name_xpath = product_name_xpath_template.replace("##",i);
-        const [product_name] = await page.$x(product_name_xpath);
+        let product_price_xpath = product_price_xpath_template.replace("##",i);
+        let product_image_xpath = product_image_xpath_template.replace("##",i);
         let product_info = {
             product_name: "",
-            product_price: ""
+            product_price: "",
+            product_image: ""
         };
+        
+        const [product_name] = await page.$x(product_name_xpath);
+        const [product_price] = await page.$x(product_price_xpath);
+        const [product_image] = await page.$x(product_image_xpath);
+
         if(product_name){
             let content = await product_name.getProperty('textContent')
             let text  = await content.jsonValue();
             product_info.product_name = text;
         }
-        let product_price_xpath = product_price_xpath_template.replace("##",i);
-        const [product_price] = await page.$x(product_price_xpath);
         if(product_price){
             let content = await product_price.getProperty('textContent')
             let text  = await content.jsonValue();
             product_info.product_price = text;
         }
-        if(product_info.product_name !== "" && product_info.product_price !== ""){
+        if(product_image){
+            let content = await product_image.getProperty('src')
+            let text  = await content.jsonValue();
+            product_info.product_image = text;
+        }
+
+        if(product_info.product_name !== "" && product_info.product_price !== "" && product_info.product_image){
             products.push(product_info);
         }
     }
@@ -85,7 +103,7 @@ async function scrapeAmazonPrices(searchString,count){
 
     output.products = products;
     output.closestToQuery = minDistanceProduct;
-
+    
     console.log(`${products.length} products found`);
     console.log("Finished populating output \n");
 
@@ -106,6 +124,7 @@ module.exports = scrapeAmazonPrices;
     for(let product of output.products){
         console.log("Product name: ",product.product_name);
         console.log("Product price: Rs",product.product_price);
+        console.log("Product image url: ",product.product_image);
         console.log("\n");
     }
     console.log("Product closest to search query: ",output.closestToQuery);
