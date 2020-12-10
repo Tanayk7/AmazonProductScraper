@@ -112,7 +112,7 @@ async function scrapeAmazonPrices(searchString,count){
 
 module.exports = scrapeAmazonPrices;
 
-(async () => {
+/*(async () => {
     let query = "solimo choco flakes";
     let max_products = 200;
 
@@ -129,5 +129,5 @@ module.exports = scrapeAmazonPrices;
     }
     console.log("Product closest to search query: ",output.closestToQuery);
     console.log("END");
-})();
+})();*/
 

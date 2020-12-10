@@ -1,0 +1,7 @@
+POST http://localhost:5000/products
+Content-Type: application/json
+
+{
+    "query":"snacks",
+    "max_products":200
+}
