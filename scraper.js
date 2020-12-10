@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-
+const levenshtein = require('js-levenshtein');
 /*const browser = await puppeteer.launch({
     headless:false,
     slowMo:100
@@ -63,17 +63,46 @@ async function scrapePrices(url,searchString,count){
             products.push(product_info);
         }
     }
-    console.log("Finished populating output");
+    console.log(`${products.length} products found`);
+    console.log("Finished populating output \n");
     return products;
 }
 
+module.exports = scrapePrices;
+
 (async () => {
-    let products = await scrapePrices('https://www.amazon.in','snacks','200');
+    let query = "solimo fruit and nut muesli";
+    let max_products = 200;
+
+    console.log("Search query: ",query);
+    console.log("Max products: ",max_products);
+
+    let products = await scrapePrices('https://www.amazon.in',query,max_products);
+
     for(let product of products){
         console.log("Product name: ",product.product_name);
         console.log("Product price: Rs",product.product_price);
         console.log("\n");
     }
+
+    let distances = products.map((product,index) => {
+        return {
+            index: index,
+            distance: levenshtein(query,product.product_name)
+        }
+    });
+    let minDistance = distances[0].distance;
+    let minIndex = distances[0].index;
+
+    for(let i=0;i<distances.length;i++){
+        if(distances[i].distance < minDistance){
+            minDistance = distances[i].distance;
+            minIndex = distances[i].index;
+        }
+    }
+
+    let minDistanceProduct = products[minIndex];
+    console.log("Product closest to search query: ",minDistanceProduct);
     console.log("END");
 })();
 
