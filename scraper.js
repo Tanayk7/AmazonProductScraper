@@ -27,7 +27,7 @@ async function scrapeAmazonPrices(searchString,count){
     let num_results = count;
     let query = searchString;
     let products = [];
-    let output = { products: [], closestToQuery: {} };
+    let output = { products: [], bestMatch: {} };
 
     console.log("Launching browser...")
     const browser = await puppeteer.launch();
@@ -102,7 +102,7 @@ async function scrapeAmazonPrices(searchString,count){
     let minDistanceProduct = products[minIndex];
 
     output.products = products;
-    output.closestToQuery = minDistanceProduct;
+    output.bestMatch = minDistanceProduct;
     
     console.log(`${products.length} products found`);
     console.log("Finished populating output \n");
