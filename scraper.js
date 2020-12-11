@@ -19,7 +19,7 @@ const levenshtein = require('js-levenshtein');
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[7]/div/span/div/div/span/a/div/img - pantry
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[12]/div/span/div/div/span/a/div/img - pantry
 
-async function scrapeAmazonPrices(searchString,count){
+async function scrapeAmazonPrices(searchString,count,scraperType='household_items'){
     let url = 'https://www.amazon.in';
     let product_name_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/h2/a/span';
     let product_price_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[4]/div/div/div/a/span[1]/span[2]/span[2]';

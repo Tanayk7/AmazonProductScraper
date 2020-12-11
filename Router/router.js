@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const scrapePrices = require('./scraper');
+const scrapePrices = require('../scraper');
 
 router.get('/',(req,res) => {
     res.send("index.html");

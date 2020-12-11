@@ -1,0 +1,18 @@
+Backend 
+    - Collect data for all categories - DONE 
+
+    - store in database - PENDING 
+
+    - Create websocket api for clients - PENDING 
+
+    - set timer for re-fetching data - DONE 
+
+    - Setup Events:  
+        - onNewData - DONE 
+        - connect - DONE
+        - disconnect - DONE 
+
+
+
+
+
