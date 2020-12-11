@@ -3,6 +3,7 @@ let products_container = document.querySelector('.products');
 let best_match_container = document.querySelector(".best-match");
 let results_container = document.querySelector('.results');
 let loader_container = document.querySelector('.loader-container');
+let total_results = document.querySelector('.total-results');
 
 function showLoader(){
     loader_container.style.display = "flex";
@@ -31,7 +32,14 @@ search_form.addEventListener("submit",async (e) => {
         let json = await response.json();
         let products = json.products;
         let best_match = json.bestMatch;
-        renderResults(products,best_match);
+        if(products.length === 0){
+            best_match_container.innerHTML = "No results found";
+            products_container.innerHTML = "No results found";
+            total_results.innerHTML = "Total results: 0"
+        }
+        else{
+            renderResults(products,best_match);
+        }
         hideLoader();
     }
     catch(error){
@@ -53,6 +61,7 @@ function renderResults(products,best_match){
     `;
     best_match_container.innerHTML = bestMatchProduct;
     
+    total_results.innerHTML = "Total results: " + products.length;
     let all_results = "";
     for(let product of products){
         let product_html = `
