@@ -50,12 +50,16 @@ search_form.addEventListener("submit",async (e) => {
 function renderResults(products,best_match){
     let bestMatchProduct = `
         <div class="product">
-            <img src='${best_match.product_image}' class='product-image'>
-            <div class="product-name">
-                ${best_match.product_name}
+            <div class='product-image-container'> 
+                <img src='${best_match.product_image}' class='product-image'>
             </div>
-            <div class="product-price">
-                ₹${best_match.product_price}
+            <div class='product-text'>
+                <div class="product-name">
+                ${best_match.product_name}
+                </div>
+                <div class="product-price">
+                    ₹${best_match.product_price}
+                </div>
             </div>
         </div>
     `;
@@ -66,12 +70,16 @@ function renderResults(products,best_match){
     for(let product of products){
         let product_html = `
             <div class="product">
-                <img src='${product.product_image}' class='product-image'>
-                <div class="product-name">
-                    ${product.product_name}
+                <div class='product-image-container'>
+                    <img src='${product.product_image}' class='product-image'>
                 </div>
-                <div class="product-price">
-                    ₹${product.product_price}
+                <div class='product-text'>
+                    <div class="product-name">
+                        ${product.product_name}
+                    </div>
+                    <div class="product-price">
+                        ₹${product.product_price}
+                    </div>
                 </div>
             </div>
         `;
