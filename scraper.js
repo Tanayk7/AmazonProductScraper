@@ -1,5 +1,4 @@
 const puppeteer = require('puppeteer');
-const levenshtein = require('js-levenshtein');
 /*const browser = await puppeteer.launch({
     headless:false,
     slowMo:100
@@ -18,6 +17,44 @@ const levenshtein = require('js-levenshtein');
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[14]/div/span/div/div/span/a/div/img
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[7]/div/span/div/div/span/a/div/img - pantry
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[12]/div/span/div/div/span/a/div/img - pantry
+
+function get_bigrams(string){
+    let s = string.toLowerCase()
+    let bigrams = [];
+    for(let i=0; i < s.length - 1; i++)
+    { 
+        bigrams[i] = s.slice(i, i + 2); 
+    }
+    return bigrams;
+}
+
+function string_similarity(str1, str2){
+    if(str1.length>0 && str2.length>0){
+        let pairs1 = get_bigrams(str1);
+        let pairs2 = get_bigrams(str2);
+        let total_length = pairs1.length + pairs2.length;
+        let hits = 0;
+
+        for(let x=0; x<pairs1.length; x++){
+            for(let y=0; y<pairs2.length; y++){
+                if(pairs1[x]==pairs2[y]) hits++;
+            }
+        }
+        if(hits>0) {
+            return ((2 * hits) / total_length);    // multiply by 2 to ensure score is between 0 and 1 
+        }
+    }
+    return 0.0
+}
+
+(()=>{
+    let string = 'abcdefgeh';
+    console.log(get_bigrams(string));
+    console.log(string_similarity("abcd",'abcd'))
+    console.log(string_similarity("epigamia greek yogurt", "Epigamia Vanilla Bean Greek Yogurt, 90g"))
+    console.log(string_similarity("epigamia greek yogurt", "Epigamia Greek Yogurt, Strawberry, 90g"))
+})()
+
 
 async function scrapeAmazonPrices(searchString,count,scraperType='household_items'){
     let url = 'https://www.amazon.in';
@@ -85,24 +122,24 @@ async function scrapeAmazonPrices(searchString,count,scraperType='household_item
             }
         }
         // Get product closest to query 
-        let distances = products.map((product,index) => {
+        let similarity_scores = products.map((product,index) => {
             return {
-                index: index,
-                distance: levenshtein(query,product.product_name)
+                product_index: index,
+                similarity: string_similarity(query,product.product_name)
             }
         });
-        let minDistance = distances[0].distance;
-        let minIndex = distances[0].index;
-        for(let i=0;i<distances.length;i++){
-            if(distances[i].distance < minDistance){
-                minDistance = distances[i].distance;
-                minIndex = distances[i].index;
+
+        let max_similar_product = products[0];
+        let max_score = similarity_scores[0].similarity;
+        similarity_scores.forEach(score => {
+            if(score.similarity > max_score){
+                max_score = score.similarity;
+                max_similar_product = products[score.product_index];
             }
-        }
-        let minDistanceProduct = products[minIndex];
+        })
 
         output.products = products;
-        output.bestMatch = minDistanceProduct;
+        output.bestMatch = max_similar_product;
         
         console.log(`${products.length} products found`);
         console.log("Finished populating output \n");
