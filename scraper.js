@@ -1,9 +1,9 @@
 const puppeteer = require('puppeteer');
+const string_similarity = require('./Utils/similarity_score');
 /*const browser = await puppeteer.launch({
     headless:false,
     slowMo:100
 });*/
-
 // prices xpath
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[7]/div/span/div/div/div[4]/div/div/div/a/span[1]/span[2]/span[2]
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[6]/div/span/div/div/div[4]/div/div/div/a/span[1]/span[2]/span[2]
@@ -12,59 +12,38 @@ const puppeteer = require('puppeteer');
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[14]/div/span/div/div/div[2]/h2/a/span
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[15]/div/span/div/div/div[2]/h2/a/span
 
+//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/div[2]/div/div[1]/div/div/div[1]/h2/a/span
+//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[3]/div/span/div/div/div[2]/div[2]/div/div[1]/div/div/div[1]/h2/a/span
+
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[6]/div/span/div/div/div/span/a/div/img - prime 
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[10]/div/span/div/div/span/a/div/img
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[14]/div/span/div/div/span/a/div/img
-//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[7]/div/span/div/div/span/a/div/img - pantry
 //*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[12]/div/span/div/div/span/a/div/img - pantry
-
-function get_bigrams(string){
-    let s = string.toLowerCase()
-    let bigrams = [];
-    for(let i=0; i < s.length - 1; i++)
-    { 
-        bigrams[i] = s.slice(i, i + 2); 
-    }
-    return bigrams;
-}
-
-function string_similarity(str1, str2){
-    if(str1.length>0 && str2.length>0){
-        let pairs1 = get_bigrams(str1);
-        let pairs2 = get_bigrams(str2);
-        let total_length = pairs1.length + pairs2.length;
-        let hits = 0;
-
-        for(let x=0; x<pairs1.length; x++){
-            for(let y=0; y<pairs2.length; y++){
-                if(pairs1[x]==pairs2[y]) hits++;
-            }
-        }
-        if(hits>0) {
-            return ((2 * hits) / total_length);    // multiply by 2 to ensure score is between 0 and 1 
-        }
-    }
-    return 0.0
-}
-
-(()=>{
-    let string = 'abcdefgeh';
-    console.log(get_bigrams(string));
-    console.log(string_similarity("abcd",'abcd'))
-    console.log(string_similarity("epigamia greek yogurt", "Epigamia Vanilla Bean Greek Yogurt, 90g"))
-    console.log(string_similarity("epigamia greek yogurt", "Epigamia Greek Yogurt, Strawberry, 90g"))
-})()
-
 
 async function scrapeAmazonPrices(searchString,count,scraperType='household_items'){
     let url = 'https://www.amazon.in';
-    let product_name_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/h2/a/span';
-    let product_price_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[4]/div/div/div/a/span[1]/span[2]/span[2]';
-    let product_image_xpath_template = '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/span/a/div/img';
+    const xpaths = {
+        product_name_xpath: {
+            default: '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/h2/a/span',
+            alt: '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/div[2]/div/div[1]/div/div/div[1]/h2/a/span'
+        },
+        product_price_xpath: {
+            default: '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[4]/div/div/div/a/span[1]/span[2]/span[2]',
+            alt: '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/div[2]/div/div[2]/div[1]/div/div[1]/div[1]/div/div/a/span[1]/span[2]/span[2]'
+        },
+        product_image_xpath: {
+            default: '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/span/a/div/img',
+            alt:    '//*[@id="search"]/div[1]/div[2]/div/span[3]/div[2]/div[##]/div/span/div/div/div[2]/div[1]/div/div/span/a/div/img'
+        }
+    }
+    let search_results_xpath = "/html/body/div[1]/div[2]/div[1]/div[2]";
+    let search_input_box_selector = "#twotabsearchtextbox";
+    let search_button_xpath = '//*[@id="nav-search-submit-text"]/input';
     let num_results = count;
     let query = searchString;
     let products = [];
     let output = { products: [], bestMatch: {} };
+
     try{
         console.log("Launching browser...")
         const browser = await puppeteer.launch();
@@ -73,24 +52,25 @@ async function scrapeAmazonPrices(searchString,count,scraperType='household_item
         
         console.log("Navigating to url...");
         await page.goto(url);
+
         console.log("Entering query...");
-        await page.type("#twotabsearchtextbox", query);
+        await page.type(search_input_box_selector, query);
 
-        const searchBtn = await page.$x('//*[@id="nav-search-submit-text"]/input');
         console.log("Clicking on search...");
+        const searchBtn = await page.$x(search_button_xpath);
         searchBtn[0].click();
-
+        
         console.log("Waiting for page to load...");
         await page.waitForNavigation()
+
         console.log("Waiting for results to load...");
-        await page.waitForXPath("/html/body/div[1]/div[2]/div[1]/div[2]");
+        await page.waitForXPath(search_results_xpath);
         
         console.log("Populating output list...");
-        // Get prices and names from Amazon
         for(let i=0;i<num_results;i++){
-            let product_name_xpath = product_name_xpath_template.replace("##",i);
-            let product_price_xpath = product_price_xpath_template.replace("##",i);
-            let product_image_xpath = product_image_xpath_template.replace("##",i);
+            let product_name_xpath = xpaths.product_name_xpath.default.replace("##",i);
+            let product_price_xpath = xpaths.product_price_xpath.default.replace("##",i);
+            let product_image_xpath = xpaths.product_image_xpath.default.replace("##",i);
             let product_info = {
                 product_name: "",
                 product_price: "",
@@ -106,29 +86,62 @@ async function scrapeAmazonPrices(searchString,count,scraperType='household_item
                 let text  = await content.jsonValue();
                 product_info.product_name = text;
             }
+            else{
+                console.log("Using alt xpath");
+                let product_name_xpath = xpaths.product_name_xpath.alt.replace("##",i);
+                const [product_name] = await page.$x(product_name_xpath);
+                if(product_name){
+                    let content = await product_name.getProperty('textContent');
+                    let text  = await content.jsonValue();
+                    product_info.product_name = text;
+                }
+            }
+
             if(product_price){
                 let content = await product_price.getProperty('textContent')
                 let text  = await content.jsonValue();
                 product_info.product_price = text;
             }
+            else{
+                console.log("Using alt xpath");
+                let product_price_xpath = xpaths.product_price_xpath.alt.replace("##",i);
+                const [product_price] = await page.$x(product_price_xpath);
+                if(product_price){
+                    let content = await product_price.getProperty('textContent');
+                    let text  = await content.jsonValue();
+                    product_info.product_price = text;
+                }
+            }
+
             if(product_image){
                 let content = await product_image.getProperty('src')
                 let text  = await content.jsonValue();
                 product_info.product_image = text;
             }
+            else{
+                console.log("Using alt xpath");
+                let product_image_xpath = xpaths.product_image_xpath.alt.replace("##",i);
+                const [product_image] = await page.$x(product_image_xpath);
+                if(product_image){
+                    let content = await product_image.getProperty('src');
+                    let text  = await content.jsonValue();
+                    product_info.product_image = text;
+                }
+            }
+            console.log(product_info);
 
             if(product_info.product_name !== "" && product_info.product_price !== "" && product_info.product_image){
                 products.push(product_info);
             }
         }
-        // Get product closest to query 
+        console.log(`${products.length} products found`);
+
         let similarity_scores = products.map((product,index) => {
             return {
                 product_index: index,
                 similarity: string_similarity(query,product.product_name)
             }
         });
-
         let max_similar_product = products[0];
         let max_score = similarity_scores[0].similarity;
         similarity_scores.forEach(score => {
@@ -140,8 +153,6 @@ async function scrapeAmazonPrices(searchString,count,scraperType='household_item
 
         output.products = products;
         output.bestMatch = max_similar_product;
-        
-        console.log(`${products.length} products found`);
         console.log("Finished populating output \n");
     }
     catch(error){

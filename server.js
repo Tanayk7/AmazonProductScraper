@@ -15,6 +15,7 @@ const server = http.createServer(app);
 const io = socketio(server);
 const database_uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@mern-app.o5cvu.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
 
+let auto_scrape_data = false;
 let products = {};
 let queries = constants.DATA_FETCH_CONFIG.scraper_config.queries;
 let max_products = constants.DATA_FETCH_CONFIG.scraper_config.max_products;
@@ -49,25 +50,26 @@ io.on("connection",(socket) => {
 
 server.listen(PORT,async () => {
     console.log(`Server listening on port ${PORT}`);
-
-    initializeProducts();
-    console.log("All products: ",products);
-
-    await fetchData(queries);
-    console.log("Fetching first time data...");
-
-    io.emit('data-change',products);
-    console.log("Data sent to client");
-
-    setInterval(async () =>{
-        console.log("Time to re-fetch the data...");  
-
-        await fetchData(queries); 
-        console.log("Fetching data...");
-        
+    if(auto_scrape_data){
+        initializeProducts();
+        console.log("All products: ",products);
+    
+        await fetchData(queries);
+        console.log("Fetching first time data...");
+    
         io.emit('data-change',products);
         console.log("Data sent to client");
-    },constants.DATA_FETCH_CONFIG.time_interval_ms)
+    
+        setInterval(async () =>{
+            console.log("Time to re-fetch the data...");  
+    
+            await fetchData(queries); 
+            console.log("Fetching data...");
+            
+            io.emit('data-change',products);
+            console.log("Data sent to client");
+        },constants.DATA_FETCH_CONFIG.time_interval_ms)
+    }
 });
 
 function initializeProducts(){
